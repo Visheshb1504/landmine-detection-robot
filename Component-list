@@ -1,0 +1,44 @@
+# Components List – Landmine Detection Robot
+
+## Core Controller
+
+* ESP32 DevKit (WROOM/WROVER)
+* ESP32 CAM
+
+## Sensors
+
+* Ultrasonic Sensors (x4) – Obstacle detection
+* Metal Detector Module – Detect buried metallic objects
+* IR Sensors – Short-range obstacle detection
+* IMU Sensor – Orientation and motion tracking
+* Temperature Sensor (TEP20N) – Environmental monitoring
+
+## Actuators
+
+* DC Motors (x2 or x4 depending on design)
+* BTS7960 Motor Driver – High current motor control
+
+## Power System
+
+* 3S3P Li-ion Battery Pack
+* 3S BMS (20A)
+* Boost Converter Module
+* LM2596 Voltage Regulator
+
+## Output/Alert System
+
+* Buzzer
+* LED Indicators
+
+## Additional Modules
+
+* ESP32-CAM (for ML-based detection - planned)
+* SD Card Module – Data logging
+
+---
+
+## Notes
+
+* System designed for multi-sensor fusion
+* ML model integration planned using Edge Impulse
+* Optimized for low power consumption and real-time response
