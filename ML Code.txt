@@ -1,0 +1,56 @@
+#include <your_model_inferencing.h>
+#include "esp_camera.h"
+
+// Prediction threshold
+#define CONFIDENCE_THRESHOLD 0.7
+
+void setup() {
+  Serial.begin(115200);
+  
+  // Camera init (simplified)
+  camera_config_t config;
+  // (actual config tu Edge Impulse export se le lena)
+
+  esp_camera_init(&config);
+
+  Serial.println("ML Model Initialized");
+}
+
+void loop() {
+  // Capture image
+  camera_fb_t *fb = esp_camera_fb_get();
+
+  if (!fb) {
+    Serial.println("Camera capture failed");
+    return;
+  }
+
+  // Run inference
+  signal_t signal;
+  ei_impulse_result_t result;
+
+  // Convert image to signal (Edge Impulse helper)
+  numpy::signal_from_buffer(fb->buf, fb->len, &signal);
+
+  EI_IMPULSE_ERROR res = run_classifier(&signal, &result, false);
+
+  if (res == EI_IMPULSE_OK) {
+    Serial.println("Predictions:");
+
+    for (size_t i = 0; i < EI_CLASSIFIER_LABEL_COUNT; i++) {
+      Serial.print(result.classification[i].label);
+      Serial.print(": ");
+      Serial.println(result.classification[i].value);
+
+      //  Detection Logic
+      if (result.classification[i].value > CONFIDENCE_THRESHOLD &&
+          strcmp(result.classification[i].label, "mine") == 0) {
+        
+        Serial.println(" LANDMINE DETECTED!");
+      }
+    }
+  }
+
+  esp_camera_fb_return(fb);
+  delay(1000);
+}
