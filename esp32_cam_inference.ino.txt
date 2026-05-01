@@ -1,0 +1,50 @@
+#include <your_model_inferencing.h>
+
+// NOTE: Replace above header with actual Edge Impulse header after export
+
+void setup() {
+  Serial.begin(115200);
+  Serial.println("ML Inference Started");
+}
+
+void loop() {
+  // Placeholder for ML inference
+  Serial.println("Running ML model...");
+
+  // Future: camera capture + classification
+
+  delay(2000);
+}
+#include "esp_camera.h"
+
+// Replace with Edge Impulse header later
+// #include <your_model_inferencing.h>
+
+void setup() {
+  Serial.begin(115200);
+
+  // Camera init (simplified)
+  camera_config_t config;
+  esp_camera_init(&config);
+
+  Serial.println("📸 ESP32-CAM Ready");
+}
+
+void loop() {
+  if (Serial.available()) {
+    String cmd = Serial.readStringUntil('\n');
+
+    if (cmd == "CAPTURE") {
+      Serial.println("Capturing Image...");
+
+      // Simulated ML result
+      bool mineDetected = random(0, 2);
+
+      if (mineDetected) {
+        Serial.println("RESULT:MINE");
+      } else {
+        Serial.println("RESULT:NORMAL");
+      }
+    }
+  }
+}
