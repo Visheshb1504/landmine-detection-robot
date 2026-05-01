@@ -1,0 +1,168 @@
+///  PIN DEFINITIONS 
+
+// Ultrasonic
+#define TRIG_PIN 5
+#define ECHO_PIN 18
+
+// Sensors
+#define METAL_DETECT_PIN 34
+#define IR_SENSOR_PIN 27
+
+// Battery
+#define BATTERY_PIN 35
+
+// Alert
+#define BUZZER_PIN 25
+#define LED_PIN 26
+
+// Motor Driver (BTS7960)
+#define RPWM 32
+#define LPWM 33
+
+//  PWM CONFIG 
+#define PWM_FREQ 1000
+#define PWM_RESOLUTION 8
+#define RPWM_CHANNEL 0
+#define LPWM_CHANNEL 1
+
+//  VARIABLES 
+long duration;
+float distance;
+
+//  MOTOR FUNCTIONS 
+void moveForward(int speed = 150) {
+  ledcWrite(RPWM_CHANNEL, speed);
+  ledcWrite(LPWM_CHANNEL, 0);
+}
+
+void stopMotors() {
+  ledcWrite(RPWM_CHANNEL, 0);
+  ledcWrite(LPWM_CHANNEL, 0);
+}
+
+void turnLeft(int speed = 150) {
+  ledcWrite(RPWM_CHANNEL, 0);
+  ledcWrite(LPWM_CHANNEL, speed);
+}
+
+//  BATTERY 
+float readBatteryVoltage() {
+  int raw = analogRead(BATTERY_PIN);
+  float voltage = (raw / 4095.0) * 3.3;
+
+  // Voltage divider (adjust as per hardware)
+  voltage = voltage * 11;
+
+  return voltage;
+}
+
+//  SETUP 
+void setup() {
+  Serial.begin(115200);
+
+  // UART for ESP32-CAM
+  Serial2.begin(115200);
+
+  // Pins
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+
+  pinMode(METAL_DETECT_PIN, INPUT);
+  pinMode(IR_SENSOR_PIN, INPUT);
+
+  pinMode(BUZZER_PIN, OUTPUT);
+  pinMode(LED_PIN, OUTPUT);
+
+  // PWM Setup
+  ledcSetup(RPWM_CHANNEL, PWM_FREQ, PWM_RESOLUTION);
+  ledcAttachPin(RPWM, RPWM_CHANNEL);
+
+  ledcSetup(LPWM_CHANNEL, PWM_FREQ, PWM_RESOLUTION);
+  ledcAttachPin(LPWM, LPWM_CHANNEL);
+
+  Serial.println(" Landmine Detection Robot Started");
+}
+
+//  MAIN LOOP 
+void loop() {
+
+  //  ULTRASONIC 
+  digitalWrite(TRIG_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+
+  duration = pulseIn(ECHO_PIN, HIGH, 30000);
+  distance = duration * 0.034 / 2;
+
+  //  SENSOR READ
+  int metalDetected = digitalRead(METAL_DETECT_PIN);
+  int irDetected = digitalRead(IR_SENSOR_PIN);
+
+  //  BATTERY 
+  float battery = readBatteryVoltage();
+
+  //  DEBUG 
+  Serial.print("Dist: ");
+  Serial.print(distance);
+  Serial.print(" | Metal: ");
+  Serial.print(metalDetected);
+  Serial.print(" | IR: ");
+  Serial.print(irDetected);
+  Serial.print(" | Battery: ");
+  Serial.println(battery);
+
+  //  SENSOR HEALTH
+  if (distance <= 0 || distance > 400) {
+    Serial.println(" Ultrasonic Error");
+  }
+
+  //  LOW BATTERY 
+  if (battery < 10.5) {
+    Serial.println(" LOW BATTERY!");
+    digitalWrite(LED_PIN, HIGH);
+    stopMotors();
+    return;
+  }
+
+  //  DETECTION 
+  bool danger = (metalDetected == HIGH || irDetected == HIGH || distance < 20);
+
+  if (danger) {
+    stopMotors();
+    digitalWrite(LED_PIN, HIGH);
+    digitalWrite(BUZZER_PIN, HIGH);
+
+    Serial.println(" Suspicious Object Detected");
+
+    //  Trigger camera
+    Serial2.println("CAPTURE");
+
+    delay(1500);
+  } 
+  else {
+    digitalWrite(LED_PIN, LOW);
+    digitalWrite(BUZZER_PIN, LOW);
+    moveForward(150);
+  }
+
+  //  READ CAMERA RESPONSE
+  if (Serial2.available()) {
+    String result = Serial2.readStringUntil('\n');
+
+    if (result == "RESULT:MINE") {
+      Serial.println(" CONFIRMED LANDMINE!");
+      stopMotors();
+      digitalWrite(BUZZER_PIN, HIGH);
+      delay(3000);
+    }
+
+    if (result == "RESULT:NORMAL") {
+      Serial.println(" SAFE PATH");
+      moveForward(150);
+    }
+  }
+
+  delay(200);
+}
